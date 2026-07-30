@@ -2,9 +2,9 @@
 
 `Chronon`, `ChrononBuilder`, `CoordinatorService`, and runtime loop assembly — choose deployment shape via `.embedded()`, `.coordinator_only()`, `.worker()`, or `.remote_coordinator()`; scheduler + executor wiring and event persistence live here.
 
-## Deployment shapes (not enums)
+## Deployment shapes
 
-Use builder methods — assembly is explicit, not a global deployment flag:
+Choose topology with builder methods:
 
 | Method | Shape |
 |--------|-------|

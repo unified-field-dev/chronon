@@ -32,7 +32,7 @@ Chronon is a **scheduled job runtime** with a pluggable `SchedulerStore`. Applic
 - **mem:** empty tick p50 ≈ configured tick interval; due-query p95 sub-ms class at 1k jobs on lab hardware.
 - **sqlite/postgres:** storage RTT tax on tick and query paths; size DB close to scheduler (in-VPC).
 - **postgres-redis:** adopt when claim throughput exceeds postgres-only (~296/s @ Q=10k vs ~1k/s hybrid).
-- **Single-host bc=1:** ~1k/s plateau on t3.medium — not a configured cap. Authoritative D3 (2026-07-11): 4× c6i.large @ Q=100k peaks **~1,283/s** bc=1; bc=2 fleet **~2,104/s** (efficiency ~0.82); bc=4 **~1,286/s** (sublinear).
+- **Single-host bc=1:** ~1k/s plateau on t3.medium. Authoritative D3 (2026-07-11): 4× c6i.large @ Q=100k peaks **~1,283/s** bc=1; bc=2 fleet **~2,104/s** (efficiency ~0.82); bc=4 **~1,286/s** (sublinear).
 - **Horizontal cells scale cleanly:** D5 T5 (2026-07-12) shows ~**470/s per cell** at W=1, near-linear to **7,742/s @ 16 cells**. Reaching 10k/s needs **~21 cells** — the sync-PG claim UPDATE is the per-cell ceiling, not Redis or instance size.
 - **Do not** use non-AWS harness labels for production fleet sizing.
 

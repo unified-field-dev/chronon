@@ -31,8 +31,8 @@ fn global_router() -> &'static RwLock<StoreRouter> {
 ///
 /// Prefer passing a store directly to `ChrononBuilder::scheduler_store` in coordinator–worker
 /// or remote-HTTP setups when each binary already shares connection URLs — the global router
-/// is optional convenience for single-process boots, not a substitute for a shared durable
-/// database.
+/// is optional convenience for single-process boots. Multi-process and remote setups still
+/// require a shared durable database.
 ///
 /// Thread-safe when accessed through [`Self::register_global`] / [`default_store_from_global`];
 /// direct mutation requires exclusive access to the router instance.

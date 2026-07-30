@@ -14,7 +14,7 @@ Do not open public issues for undisclosed vulnerabilities.
 
 ## Operator hardening (L0)
 
-Chronon is a **library scheduler**, not an authenticated product server. Hosts (for example Higgs) own identity, authorization, and network exposure.
+Chronon is a **library scheduler**. Hosts (for example Higgs) own identity, authorization, and network exposure.
 
 | Area | Guidance |
 |------|----------|

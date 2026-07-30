@@ -167,7 +167,7 @@ Shipped adapters implement [`SchedulerStore`](chronon-core/src/store.rs) and plu
 
 ## Deployment shapes
 
-Selected via **`ChrononBuilder`** — not a global mode enum:
+Selected via **`ChrononBuilder`** methods (embedded, coordinator, worker, remote-client):
 
 | Shape | Builder | Use when |
 |-------|---------|----------|
@@ -182,13 +182,14 @@ Selected via **`ChrononBuilder`** — not a global mode enum:
 
 - Cron, run-once, and manual job triggers for Rust functions
 - Coordinator–worker split with leases and partitions
-- Systems that need a storage port, not a full BPM/workflow suite
+- Systems that need a pluggable storage port for scheduled Rust handlers
 
 **Not a fit**
 
 - Canonical system-of-record for all app data (use your ORM above the port)
 - Cross-language script execution (Chronon runs Rust handlers)
 - Built-in ops UI (build admin UI above the HTTP API)
+- Full BPM / multi-step workflow suites
 
 ## Workspace
 
