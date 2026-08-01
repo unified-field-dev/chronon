@@ -22,10 +22,16 @@ croner = { workspace = true }
 chrono-tz = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-tokio = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
 xxhash-rust = { workspace = true }
+
+# Keep wasm hydrate graphs free of tokio's full default/rt-multi-thread feature set.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tokio = { version = "1", default-features = false, features = ["rt", "macros", "sync", "time"] }
 
 [dev-dependencies]
 chronon-backend-mem = { workspace = true }
