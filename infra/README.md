@@ -1,8 +1,3 @@
 # Infra
 
-**AWS E2E and scaling-fleet campaigns** live in the private sibling checkout:
-
-`~/unified-field/uf-live-cloud-lab/chronon/infra/aws`
-
-Set `UF_LAB_ROOT` and see that repo’s README. Decision-grade report archives are under
-`uf-live-cloud-lab/chronon/reports/bench/`.
+AWS E2E and scaling-fleet campaigns run on AWS EC2. Operator runbooks and decision-grade report archives stay outside this public tree.

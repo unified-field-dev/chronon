@@ -219,9 +219,7 @@ Decision-grade numbers live under `profiling/chronon-bench/reports/`. Run locall
 cargo run -p chronon-bench -- experiments
 ./chronon-bench/scripts/run-ch7-multibench-smoke.sh
 
-# AWS hyperscale campaign (D5 ladder T0–T7) — uf-live-cloud-lab
-# cd ~/unified-field/uf-live-cloud-lab/chronon/infra/aws/chronon/scaling-fleet
-# ./scripts/run-ch7-d5-full-ladder-aws.sh
+# AWS hyperscale campaign (D5 ladder T0–T7) runs on AWS EC2 (operator campaign).
 ```
 
 Registry and sweep phases: [`chronon-bench/EXPERIMENTS.md`](chronon-bench/EXPERIMENTS.md). Interpretation and sizing: [`chronon-bench/PERFORMANCE_STUDY.md`](chronon-bench/PERFORMANCE_STUDY.md).

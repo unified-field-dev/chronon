@@ -1,6 +1,6 @@
 # Chronon performance
 
-Measured on AWS (`t3.medium`, `c6i.large`, and multi-host fleets). Chronon is a scheduled job runtime: apps register cron and run-once work; the scheduler ticks, claims due runs, and workers execute them. Storage adapters (`mem`, `sqlite`, `postgres`, `postgres-redis`) change durability and claim throughput. Full ladders live in the private `uf-live-cloud-lab` chronon performance study.
+Measured on AWS (`t3.medium`, `c6i.large`, and multi-host fleets). Chronon is a scheduled job runtime: apps register cron and run-once work; the scheduler ticks, claims due runs, and workers execute them. Storage adapters (`mem`, `sqlite`, `postgres`, `postgres-redis`) change durability and claim throughput. Full ladders come from AWS campaign runs.
 
 ## Scheduler overhead
 
