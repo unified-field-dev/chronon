@@ -16,8 +16,8 @@ Matrix-driven **correctness** integration tests for Chronon scheduler runtime fe
 |---------|-------|---------|
 | Push / PR | **Core** — mem + sqlite × embedded + coordinator-worker | `cargo test -p chronon-e2e -p chronon-axum -- --test-threads=1` |
 | Push / PR | **Durable** — postgres + postgres-redis scenario matrix (`--ignored`) | `cargo test -p chronon-e2e --test scenarios -- --ignored` (see `e2e-durable` in [`ci.yml`](../.github/workflows/ci.yml)) |
-| AWS fleet | **Full gate** — durable + distributed smokes | [`infra/aws/chronon/run-e2e-aws.sh`](../infra/aws/chronon/run-e2e-aws.sh) |
-| AWS preflight | Mirror full PR CI suite | [`infra/aws/chronon/run-remote-ci.sh`](../infra/aws/chronon/run-remote-ci.sh) |
+| AWS fleet | **Full gate** — durable + distributed smokes | `$UF_LAB_ROOT/chronon/infra/aws/chronon/run-e2e-aws.sh` |
+| AWS preflight | Mirror full PR CI suite | `$UF_LAB_ROOT/chronon/infra/aws/chronon/run-remote-ci.sh` |
 
 ## Coverage matrix
 
@@ -52,11 +52,11 @@ cargo test -p chronon-e2e --test distributed_smoke -- --ignored --test-threads=1
 
 ## AWS E2E
 
-Fleet layout and commands: [`infra/aws/chronon/README.md`](../infra/aws/chronon/README.md).
+Fleet layout and commands: `$UF_LAB_ROOT/chronon/infra/aws/chronon/README.md`.
 
 ```bash
-./infra/aws/chronon/run-remote-ci.sh   # full PR CI mirror + durable
-./infra/aws/chronon/deploy-and-run-e2e.sh  # durable + distributed smokes
+$UF_LAB_ROOT/chronon/infra/aws/chronon/run-remote-ci.sh   # full PR CI mirror + durable
+$UF_LAB_ROOT/chronon/infra/aws/chronon/deploy-and-run-e2e.sh  # durable + distributed smokes
 ```
 
 Requires `CHRONON_E2E_HOST`, `CHRONON_DATA_IP`, and `CHRONON_SSH_KEY` (path to the EC2 SSH private key).

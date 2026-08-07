@@ -2,7 +2,7 @@
 
 Performance CLI and experiment registry for BM-CH* (scheduler layer) and BM-CH7-D hyperscale campaigns — run benchmark sweeps, matrix slices, scaling curves, and fleet aggregation.
 
-**Docs:** [`EXPERIMENTS.md`](EXPERIMENTS.md) · [`PERFORMANCE_STUDY.md`](PERFORMANCE_STUDY.md)
+**Docs:** [`PERFORMANCE.md`](PERFORMANCE.md) · [`PERFORMANCE.md`](PERFORMANCE.md)
 
 ## Subcommands
 
@@ -31,6 +31,6 @@ cargo test -p chronon-bench --all-targets
 
 Local sweeps: [`scripts/`](scripts/) — `run-ch7-d0-worker-sweep.sh`, `run-ch7-pool-sweep.sh`, `run-ch7-multibench-sweep.sh`, `run-ch7d-fleet-sweep.sh`, `run-ch7-multibench-smoke.sh`.
 
-AWS hyperscale (CH7-D0–D4): [`../infra/aws/chronon/scaling-fleet/`](../infra/aws/chronon/scaling-fleet/) — provision, deploy, full campaign, fetch reports.
+AWS hyperscale (CH7-D0–D4): `$UF_LAB_ROOT/chronon/infra/aws/chronon/scaling-fleet/` — provision, deploy, full campaign, fetch reports.
 
 **Reports:** `profiling/chronon-bench/reports/` — baseline 85 JSON on `aws-t3.medium`; CH7-D curves on `aws-c6i-large` label.
