@@ -20,7 +20,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 license = "MIT"
 rust-version = "1.88"
@@ -33,20 +33,20 @@ keywords = ["cron", "scheduler", "jobs", "async", "tokio"]
 categories = ["asynchronous", "date-and-time"]
 
 [workspace.dependencies]
-chronon-core = { path = "chronon-core", version = "0.1.3" }
-chronon-macros = { path = "chronon-macros", version = "0.1.3" }
-chronon-telemetry = { path = "chronon-telemetry", version = "0.1.3" }
-chronon-backend-mem = { path = "chronon-backend-mem", version = "0.1.3" }
-chronon-backend-sql-common = { path = "chronon-backend-sql-common", version = "0.1.3" }
-chronon-backend-postgres = { path = "chronon-backend-postgres", version = "0.1.3" }
-chronon-backend-sqlite = { path = "chronon-backend-sqlite", version = "0.1.3" }
-chronon-backend-redis = { path = "chronon-backend-redis", version = "0.1.3" }
-chronon-scheduler = { path = "chronon-scheduler", version = "0.1.3" }
-chronon-executor = { path = "chronon-executor", version = "0.1.3" }
-chronon-runtime = { path = "chronon-runtime", version = "0.1.3" }
-chronon-axum = { path = "chronon-axum", version = "0.1.3" }
-chronon-testkit = { path = "chronon-testkit", version = "0.1.3" }
-chronon-bench = { path = "chronon-bench", version = "0.1.3" }
+chronon-core = { path = "chronon-core", version = "0.1.4" }
+chronon-macros = { path = "chronon-macros", version = "0.1.4" }
+chronon-telemetry = { path = "chronon-telemetry", version = "0.1.4" }
+chronon-backend-mem = { path = "chronon-backend-mem", version = "0.1.4" }
+chronon-backend-sql-common = { path = "chronon-backend-sql-common", version = "0.1.4" }
+chronon-backend-postgres = { path = "chronon-backend-postgres", version = "0.1.4" }
+chronon-backend-sqlite = { path = "chronon-backend-sqlite", version = "0.1.4" }
+chronon-backend-redis = { path = "chronon-backend-redis", version = "0.1.4" }
+chronon-scheduler = { path = "chronon-scheduler", version = "0.1.4" }
+chronon-executor = { path = "chronon-executor", version = "0.1.4" }
+chronon-runtime = { path = "chronon-runtime", version = "0.1.4" }
+chronon-axum = { path = "chronon-axum", version = "0.1.4" }
+chronon-testkit = { path = "chronon-testkit", version = "0.1.4" }
+chronon-bench = { path = "chronon-bench", version = "0.1.4" }
 quark = { package = "uf-quark", version = "0.1.1" }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
 serde = { version = "1", features = ["derive"] }
