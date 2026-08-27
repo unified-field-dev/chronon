@@ -175,8 +175,7 @@ enum BurstLayout {
 async fn run_layout(ctx: &RunContext, layout: BurstLayout) -> Result<BenchReport> {
     let mut workload = BurstWorkload::from_bench(&ctx.bench)?;
     if std::env::var("CHRONON_BENCH_BURST_FAIL_PROBE")
-        .ok()
-        .is_some_and(|v| matches!(v.as_str(), "1" | "true"))
+        .is_ok_and(|v| matches!(v.as_str(), "1" | "true"))
     {
         workload.script_name = FAIL_SCRIPT;
         workload.background_jobs = 0;

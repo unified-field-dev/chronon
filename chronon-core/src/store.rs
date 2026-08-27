@@ -171,7 +171,7 @@ pub trait SchedulerStore: Send + Sync {
     ) -> Result<bool>;
 
     /// Reset `claimed` / `running` runs whose `claim_lease_until` is at or before `now` to
-    /// [`RunStatus::Queued`](crate::models::RunStatus::Queued).
+    /// [`RunStatus::Queued`].
     ///
     /// Clears `claimed_by`, `claim_lease_until`, and `started_at`. Returns the reclaimed
     /// `run_id` values so hybrid backends can re-enqueue claim queues.
