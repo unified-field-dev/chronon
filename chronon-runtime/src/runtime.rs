@@ -101,8 +101,9 @@ impl Chronon {
     ///   [`ChrononError::Internal`](chronon_core::ChrononError::Internal); use
     ///   [`crate::RemoteCoordinatorClient`] instead
     ///
-    /// Call `scheduler.init_partitions().await` before [`Self::run`] on coordinator /
-    /// embedded shapes so partition ownership is ready.
+    /// Call `scheduler.init_partitions().await` before [`Self::run`] on the `Embedded`
+    /// shape so partition ownership is ready. `CoordinatorOnly` needs no such call —
+    /// leader election assigns partitions to whichever replica wins the lease.
     ///
     /// # Examples
     ///

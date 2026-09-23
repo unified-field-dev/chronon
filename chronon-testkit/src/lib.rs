@@ -37,9 +37,9 @@ pub use catalog::{
     CatalogEntry, PathKind,
 };
 pub use distributed::{
-    coordinator_leader_exclusive_smoke, distributed_store_available,
-    dual_worker_claim_exclusive_smoke, dual_worker_wrong_pool_idle_smoke,
-    postgres_redis_hybrid_claim_roundtrip_smoke,
+    coordinator_failover_postgres_redis_smoke, coordinator_leader_exclusive_smoke,
+    distributed_store_available, dual_worker_claim_exclusive_smoke,
+    dual_worker_wrong_pool_idle_smoke, postgres_redis_hybrid_claim_roundtrip_smoke,
 };
 pub use fixtures::{
     counting_probe_total, parse_sleep_ms, reset_counting_probe, seed_due_cron_jobs,

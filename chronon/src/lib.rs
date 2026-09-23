@@ -154,7 +154,7 @@
 //! ### Run both
 //!
 //! 1. Start Postgres (and Redis). Set `CHRONON_POSTGRES_URL` / `CHRONON_REDIS_URL`.
-//! 2. Start the **coordinator** (`init_partitions` then [`Chronon::run`]).
+//! 2. Start the **coordinator** ([`Chronon::run`] — leader election assigns partitions).
 //! 3. Start one or more **workers** with unique `CHRONON_INSTANCE_ID` values.
 //! 4. Upsert jobs (via [`ScriptHandle`]) from the coordinator, an Axum host, or a
 //!    [remote HTTP client](#remote-http-client).
@@ -290,8 +290,9 @@
 //!   explicitly. Document the public crate with `--all-features` so rustdoc links resolve.
 //! - **Coordinator–worker scripts live on workers** — inventory must be linked into the binary
 //!   that calls `.worker(...)`; the coordinator ticks but does not execute handlers.
-//! - **Call `scheduler.init_partitions().await` before [`Chronon::run`]** on embedded and
-//!   coordinator-only shapes.
+//! - **Call `scheduler.init_partitions().await` before [`Chronon::run`]** on the embedded
+//!   shape. Coordinator-only needs no such call — leader election assigns partitions to
+//!   whichever replica wins the lease.
 //! - **RemoteClient must not call [`Chronon::run`]** — that shape returns an error; use
 //!   [`RemoteCoordinatorClient`].
 //! - **`mem` is embedded-only** — it does not cross process boundaries.

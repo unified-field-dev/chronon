@@ -196,4 +196,11 @@ impl PartitionAssigner {
         let all: Vec<u32> = (0..self.num_partitions).collect();
         *self.owned.write().await = all;
     }
+
+    /// Demotion: drop local partition ownership without touching stored leases.
+    ///
+    /// Called by [`crate::leader::LeaderElector`] when this instance loses the leader lease.
+    pub async fn release_all(&self) {
+        self.owned.write().await.clear();
+    }
 }

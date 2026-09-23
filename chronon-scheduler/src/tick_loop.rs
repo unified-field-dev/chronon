@@ -1,5 +1,6 @@
 //! Coordinator tick: claim due jobs and enqueue runs.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -410,16 +411,28 @@ pub async fn run_one_tick(
 /// Coordinator-only loop (never executes scripts).
 ///
 /// Runs [`run_one_tick`] until `shutdown` is notified; used by distributed coordinator
-/// processes separate from worker executors.
+/// processes separate from worker executors. While `is_leader` is false, sleeps and
+/// rechecks instead of ticking — only the elected leader should scan for due jobs in
+/// split deployments (see [`crate::leader::LeaderElector`]). Embedded hosts pass a
+/// permanently-`true` flag, so their loop body is unaffected.
 pub async fn run_coordinator_tick_loop(
     store: Arc<dyn SchedulerStore>,
     telemetry: Arc<dyn TelemetrySink>,
     instance_id: String,
     assigner: Arc<PartitionAssigner>,
+    is_leader: Arc<AtomicBool>,
     shutdown: Arc<Notify>,
 ) {
     let mut draining = false;
     loop {
+        if !is_leader.load(Ordering::SeqCst) {
+            let standby_wait = Duration::from_millis(partitioning::tick_interval_ms_from_env());
+            tokio::select! {
+                () = shutdown.notified() => break,
+                () = sleep(standby_wait) => {}
+            }
+            continue;
+        }
         tokio::select! {
             () = shutdown.notified() => break,
             _ = run_one_tick(&store, &telemetry, &instance_id, &assigner, &mut draining) => {}

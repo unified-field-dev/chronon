@@ -272,6 +272,17 @@ macro_rules! matrix_distributed_scenario_suite {
 
         #[tokio::test]
         #[ignore = "requires CHRONON_POSTGRES_URL and CHRONON_REDIS_URL — distributed smoke"]
+        async fn coordinator_failover_postgres_redis() {
+            if !$crate::distributed_store_available() {
+                return;
+            }
+            $crate::coordinator_failover_postgres_redis_smoke()
+                .await
+                .expect("coordinator failover");
+        }
+
+        #[tokio::test]
+        #[ignore = "requires CHRONON_POSTGRES_URL and CHRONON_REDIS_URL — distributed smoke"]
         async fn postgres_redis_hybrid_claim_roundtrip() {
             if !$crate::distributed_store_available() {
                 return;

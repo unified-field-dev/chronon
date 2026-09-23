@@ -161,6 +161,88 @@ pub async fn coordinator_leader_exclusive_smoke() -> Result<()> {
     Ok(())
 }
 
+/// Two real `CoordinatorOnly` replicas against postgres-redis: only the elected leader
+/// ticks, and the survivor resumes ticking after the leader is killed.
+///
+/// Unlike [`coordinator_leader_exclusive_smoke`] (which only exercises the store-level
+/// lease CAS), this drives the actual `ChrononBuilder` + `LeaderElector` +
+/// `run_coordinator_tick_loop` production wiring against the shared postgres-redis store,
+/// validating the same failover contract `BM-CH4` measures — but as a pass/fail assertion,
+/// not a latency sample.
+pub async fn coordinator_failover_postgres_redis_smoke() -> Result<()> {
+    if !distributed_store_available() {
+        bail!("CHRONON_POSTGRES_URL and CHRONON_REDIS_URL required");
+    }
+    let mut session = BootstrapSession::new(postgres_redis_matrix());
+    session.install().await?;
+    let store = session.store_dyn()?;
+    let telemetry = session.telemetry();
+
+    let iso = uuid::Uuid::new_v4().simple().to_string();
+    let mut coord_a = chronon_runtime::ChrononBuilder::new()
+        .scheduler_store(Arc::clone(&store))
+        .telemetry_sink(telemetry.clone())
+        .instance_id(format!("failover-a-{iso}"))
+        .coordinator_only()
+        .build()
+        .map_err(|e| anyhow::anyhow!("build coord-a: {e}"))?;
+    let mut coord_b = chronon_runtime::ChrononBuilder::new()
+        .scheduler_store(Arc::clone(&store))
+        .telemetry_sink(telemetry)
+        .instance_id(format!("failover-b-{iso}"))
+        .coordinator_only()
+        .build()
+        .map_err(|e| anyhow::anyhow!("build coord-b: {e}"))?;
+
+    let shutdown_a = coord_a.shutdown_handle();
+    let shutdown_b = coord_b.shutdown_handle();
+    tokio::spawn(async move {
+        let _ = coord_a.run().await;
+    });
+    tokio::spawn(async move {
+        let _ = coord_b.run().await;
+    });
+
+    // Let leadership settle (postgres round trips are slower than the in-memory backend).
+    tokio::time::sleep(Duration::from_secs(2)).await;
+    let leader = store
+        .get_leader()
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("no leader elected"))?;
+    let (leader_shutdown, survivor_shutdown) =
+        if leader.leader_instance_id.starts_with("failover-a") {
+            (&shutdown_a, &shutdown_b)
+        } else {
+            (&shutdown_b, &shutdown_a)
+        };
+
+    // Kill the leader, then seed a due job only after that so any run for it is
+    // unambiguously attributable to the survivor taking over.
+    leader_shutdown.notify_waiters();
+    let job = crate::fixtures::upsert_immediate_cron_job(
+        store.as_ref(),
+        &format!("failover-job-{iso}"),
+        NOOP_SCRIPT,
+        "* * * * *",
+    )
+    .await?;
+
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
+    loop {
+        if !store.list_runs_for_job(&job.job_id, 10).await?.is_empty() {
+            break;
+        }
+        if tokio::time::Instant::now() >= deadline {
+            survivor_shutdown.notify_waiters();
+            bail!("surviving replica did not resume ticking within budget");
+        }
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
+
+    survivor_shutdown.notify_waiters();
+    Ok(())
+}
+
 /// Coordinator tick enqueues runs; two workers claim via hybrid store.
 pub async fn postgres_redis_hybrid_claim_roundtrip_smoke() -> Result<()> {
     use crate::fixtures::upsert_immediate_cron_job;

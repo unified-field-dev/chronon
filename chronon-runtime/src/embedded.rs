@@ -1,5 +1,6 @@
 //! Embedded deployment: coordinator tick + worker in one process.
 
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 use chronon_executor::Executor;
@@ -30,12 +31,15 @@ pub async fn run_embedded_loops(
     let tick_telemetry = Arc::clone(&telemetry);
     let tick_instance = instance_id.clone();
     let tick_assigner = Arc::clone(&assigner);
+    // Embedded hosts are always the sole ticker in their process; leadership doesn't apply.
+    let tick_is_leader = Arc::new(AtomicBool::new(true));
     tokio::spawn(async move {
         run_coordinator_tick_loop(
             tick_store,
             tick_telemetry,
             tick_instance,
             tick_assigner,
+            tick_is_leader,
             tick_shutdown,
         )
         .await;

@@ -78,10 +78,18 @@ Representative AWS in-VPC results (`aws-c6i.large` cells with an `aws-t3.medium`
 | Worker claim (hybrid) | **~1,000 claims/s** | postgres-redis, W=32, Q=10k (vs postgres ~296/s) |
 | Multi-cell fleet | **7,742 claims/s** @ 16 cells (~470/s/cell, near-linear) | postgres-redis, W=1/host, Q=100k (D5 T5) |
 | Cron evaluation | **~396k evals/s** (vs croner ~187k) | `CronExpr`, no store |
-| Leader failover | **p95 331 ms** (≤ 2× tick interval) | postgres-redis (BM-CH4) |
+| Leader failover | *needs re-measurement* — see note below | postgres-redis (BM-CH4) |
 | Empty-tick latency | **p50 ~252 ms** (tick-interval bound) | mem, 250 ms tick |
 
 The sync-Postgres claim path scales **horizontally by cell** (~470/s each), not by workers or batching — ~21 cells project to 10k claims/s. Redis Cluster, larger instances, PgBouncer, and claim batching did not lift the per-cell ceiling (D5 T1–T4, T6).
+
+BM-CH4 now boots two real `CoordinatorOnly` [`Chronon`](chronon-runtime/src/runtime.rs) instances and
+measures wall-clock time from killing the leader to the survivor resuming ticking, instead of timing the
+store-level lease CAS in isolation after externally waiting out the TTL. The prior **p95 331 ms** figure
+was measured under that older, narrower methodology and understates real failover time, which is bound
+below by `CHRONON_LEADER_TTL_S` (the dead leader's lease must actually lapse before a standby may take
+over) rather than by the tick interval — a mem-storage run under the corrected methodology showed p95 in
+the 1–2 s range against a 1 s TTL. Re-measure on `postgres-redis` before republishing this row.
 
 Full methodology, caveats, and sizing guidance: [`PERFORMANCE_STUDY.md`](chronon-bench/PERFORMANCE_STUDY.md). Experiment registry: [`EXPERIMENTS.md`](chronon-bench/EXPERIMENTS.md).
 

@@ -42,7 +42,9 @@ pub enum DeploymentShape {
     /// Coordinator tick loop + worker in one process (embedded default).
     #[default]
     Embedded,
-    /// Scheduler tick and partition assigner only; no script execution (coordinator binary).
+    /// Scheduler tick and leader election only; no script execution (coordinator binary).
+    /// Only the elected leader among live `CoordinatorOnly` replicas ticks — others stand
+    /// by and take over on failover. See [`chronon_scheduler::LeaderElector`].
     CoordinatorOnly,
     /// Worker loop for `pool_id`; claims runs from the shared store (worker binary).
     Worker(String),

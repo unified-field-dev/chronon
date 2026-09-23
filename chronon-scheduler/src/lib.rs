@@ -8,7 +8,7 @@
 //! - **Fluent job construction (preferred)** — [`JobBuilder`]
 //! - **Embedded / coordinator ticks** — [`Scheduler`], [`run_coordinator_tick_loop`]
 //! - **Cron parsing** — [`CronExpr`]
-//! - **Horizontal scale-out** — [`PartitionAssigner`], [`try_acquire_leader`]
+//! - **Horizontal scale-out** — [`PartitionAssigner`], [`try_acquire_leader`], [`LeaderElector`]
 //! - **Env tuning** — `num_partitions_from_env`, `tick_interval_ms_from_env`, and related helpers (see table below)
 //!
 //! # Environment variables
@@ -26,6 +26,7 @@
 //! | `CHRONON_WORKER_POOL` | `"general"` | Default worker pool id |
 //! | `CHRONON_WORKER_CONCURRENCY` | 4 | Concurrent run tasks per worker loop |
 //! | `CHRONON_LEADER_TTL_S` | 30 | Scheduler leader lease (see [`try_acquire_leader`]) |
+//! | `CHRONON_LEADER_RENEW_S` | 5 | Leader election campaign/renew interval (see [`LeaderElector`]) |
 //! | `CHRONON_DISABLE_COORDINATOR` | — | Set to `1` or `true` to pause coordinator ticks |
 //! | `CHRONON_DISABLE_WORKER` | — | Set to `1` or `true` to pause worker claiming |
 //!
@@ -48,7 +49,9 @@ mod tick_loop;
 
 pub use cron::CronExpr;
 pub use job_builder::JobBuilder;
-pub use leader::{am_i_leader, current_leader, renew_leader_lease, try_acquire_leader};
+pub use leader::{
+    am_i_leader, current_leader, renew_leader_lease, try_acquire_leader, LeaderElector,
+};
 pub use partition_assigner::PartitionAssigner;
 pub use partitioning::{
     job_claim_lease_ttl_secs, job_execution_pool_id, num_partitions_from_env,
