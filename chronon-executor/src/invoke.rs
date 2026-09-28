@@ -7,6 +7,7 @@ use chronon_telemetry::{
     CapturedLogs, ChrononLogCapture, TelemetrySink, DEFAULT_MAX_CAPTURE_BYTES,
 };
 use serde_json::Value;
+use tracing::instrument::WithSubscriber;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::Registry;
 
@@ -63,9 +64,10 @@ fn record_executor_error(
 
 /// Execute a script and capture tracing output for the run record.
 ///
-/// Installs a scoped [`ChrononLogCapture`] dispatcher for the invoke so info/warn/error
-/// events are buffered. Logs are returned on **both** success and failure (failure also
-/// ensures `stderr_text` includes the error message).
+/// Scopes a [`ChrononLogCapture`] dispatcher to the invoke future (not the calling thread)
+/// so the script's info/warn/error events are buffered and other tasks' events are not.
+/// Logs are returned on **both** success and failure (failure also ensures `stderr_text`
+/// includes the error message).
 #[tracing::instrument(
     skip(req),
     fields(
@@ -89,9 +91,10 @@ pub async fn execute_script(req: ExecuteScriptRequest<'_>) -> ExecuteScriptOutco
     let capture = ChrononLogCapture::new(DEFAULT_MAX_CAPTURE_BYTES);
     let subscriber = Registry::default().with(capture.clone());
     let dispatch = tracing::dispatcher::Dispatch::new(subscriber);
-    let guard = tracing::dispatcher::set_default(&dispatch);
     let scope = capture.enter();
 
+    // Must stay scoped to the future: a thread-local default held across `.await` leaks into
+    // other tasks sharing the worker thread and misses the script after it migrates.
     let result = invoke_inner(ExecuteScriptRequest {
         registry,
         context_factory,
@@ -102,10 +105,10 @@ pub async fn execute_script(req: ExecuteScriptRequest<'_>) -> ExecuteScriptOutco
         job_name,
         run_id,
     })
+    .with_subscriber(dispatch)
     .await;
 
     let mut logs = scope.finish();
-    drop(guard);
 
     if let Err(ref e) = result {
         logs.ensure_stderr_message(&e.to_string());
