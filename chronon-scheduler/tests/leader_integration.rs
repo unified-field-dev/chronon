@@ -59,7 +59,7 @@ async fn leader_elector_standby_never_owns_partitions() {
     assert!(!elector
         .is_leader_flag()
         .load(std::sync::atomic::Ordering::SeqCst));
-    assert!(assigner.owned_partitions().await.is_empty());
+    assert_eq!(assigner.owned_partitions().await, [] as [u32; 0]);
 }
 
 /// Restores a prior env value (or removes the key) on drop.
@@ -119,5 +119,5 @@ async fn leader_elector_demotes_on_lease_theft() {
     assert!(!elector
         .is_leader_flag()
         .load(std::sync::atomic::Ordering::SeqCst));
-    assert!(assigner.owned_partitions().await.is_empty());
+    assert_eq!(assigner.owned_partitions().await, [] as [u32; 0]);
 }

@@ -41,6 +41,10 @@ pub struct UpsertJobRequest {
     /// Optional [`chronon_core::MisfirePolicy`] JSON object.
     #[serde(default)]
     pub misfire_policy: Option<Value>,
+    /// Worker pool the job's runs are claimed from. Omitted keeps the stored pool;
+    /// an empty string clears it back to the scheduler default (`general`).
+    #[serde(default)]
+    pub pool: Option<String>,
 }
 
 fn default_true() -> bool {
@@ -109,6 +113,9 @@ pub struct JobResponse {
     pub created_at: String,
     /// Last upsert timestamp (RFC3339).
     pub updated_at: String,
+    /// Worker pool runs are claimed from; `None` means the scheduler default (`general`).
+    #[serde(default)]
+    pub pool: Option<String>,
 }
 
 impl From<Job> for JobResponse {
@@ -125,6 +132,7 @@ impl From<Job> for JobResponse {
             current_revision: job.current_revision,
             created_at: job.created_at.to_rfc3339(),
             updated_at: job.updated_at.to_rfc3339(),
+            pool: job.pool,
         }
     }
 }
@@ -160,6 +168,12 @@ pub struct RunResponse {
     pub duration_ms: Option<i64>,
     /// Attempt number for retries.
     pub attempt: i32,
+    /// Pool the run was queued in.
+    #[serde(default)]
+    pub pool_id: Option<String>,
+    /// Worker that claimed the run (`{instance}:{pool}:{slot}`).
+    #[serde(default)]
+    pub claimed_by: Option<String>,
 }
 
 impl From<Run> for RunResponse {
@@ -174,6 +188,8 @@ impl From<Run> for RunResponse {
             finished_at: run.finished_at.map(|t| t.to_rfc3339()),
             duration_ms: run.duration_ms,
             attempt: run.attempt,
+            pool_id: run.pool_id,
+            claimed_by: run.claimed_by,
         }
     }
 }

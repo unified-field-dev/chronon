@@ -180,6 +180,6 @@ mod tests {
         let sink = RecordingSink::new();
         sink.record_gauge("chronon_active_runs", &[], 2.0);
         sink.clear();
-        assert!(sink.gauges().is_empty());
+        assert_eq!(sink.gauges(), [] as [RecordedGauge; 0]);
     }
 }

@@ -56,6 +56,8 @@ struct UpsertJobRequest {
     retry_policy: Option<Value>,
     #[serde(default)]
     misfire_policy: Option<Value>,
+    #[serde(default)]
+    pool: Option<String>,
 }
 
 fn default_true() -> bool {
@@ -110,6 +112,10 @@ pub struct JobSummary {
     pub created_at: String,
     /// Last upsert timestamp (RFC3339).
     pub updated_at: String,
+    /// Worker pool runs are claimed from; `None` means the scheduler default (`general`).
+    /// Older coordinators omit the field.
+    #[serde(default)]
+    pub pool: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -201,6 +207,9 @@ impl RemoteCoordinatorClient {
     }
 
     /// POST `/jobs/upsert` with fields from `job`.
+    ///
+    /// Always sends `pool`; `None` goes out as an empty string so the coordinator
+    /// resets the job to the default pool instead of keeping a stale one.
     pub async fn upsert_job(&self, job: Job) -> Result<()> {
         let req = UpsertJobRequest {
             job_name: job.job_name,
@@ -215,6 +224,7 @@ impl RemoteCoordinatorClient {
             actor_json: Some(job.actor_json),
             retry_policy: Some(job.retry_policy_json),
             misfire_policy: Some(job.misfire_policy_json),
+            pool: Some(job.pool.unwrap_or_default()),
         };
         let _: JobResponse = Self::parse_response(
             self.client

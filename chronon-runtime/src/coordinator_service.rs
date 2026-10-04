@@ -278,6 +278,6 @@ mod tests {
         let job = Job::new("j1", "script_a");
         svc.upsert_job(job.clone()).await.unwrap();
         let run_id = svc.run_now(&job.job_id).await.unwrap();
-        assert!(!run_id.is_empty());
+        assert_ne!(run_id, "");
     }
 }

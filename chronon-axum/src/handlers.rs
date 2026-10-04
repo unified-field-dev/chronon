@@ -29,7 +29,32 @@ pub(crate) fn clamp_list_limit(limit: Option<usize>) -> usize {
     limit.unwrap_or(100).min(MAX_LIST_LIMIT)
 }
 
-/// `POST /jobs/upsert` — create or update a job matched by `job_name`; 400 if script missing or cron invalid.
+/// Longest pool id accepted on upsert.
+const MAX_POOL_CHARS: usize = 128;
+
+/// Trimmed pool for [`Job::pool`]; empty clears it to the scheduler default.
+///
+/// Pool ids become queue key segments, so only `[A-Za-z0-9._/-]` is accepted.
+fn normalize_pool(raw: &str) -> Result<Option<String>, String> {
+    let pool = raw.trim();
+    if pool.is_empty() {
+        return Ok(None);
+    }
+    let safe = pool.len() <= MAX_POOL_CHARS
+        && pool
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '/' | '-'));
+    if safe {
+        Ok(Some(pool.to_string()))
+    } else {
+        Err(format!(
+            "Invalid pool: use at most {MAX_POOL_CHARS} characters from [A-Za-z0-9._/-]"
+        ))
+    }
+}
+
+/// `POST /jobs/upsert` — create or update a job matched by `job_name`; 400 if script missing,
+/// cron invalid, or `pool` malformed.
 ///
 /// When a job with the same `job_name` already exists, its `job_id` and `created_at` are preserved and
 /// `current_revision` is bumped. Concurrency, timeout, and retry policy values are clamped to
@@ -82,6 +107,14 @@ pub async fn upsert_job(
     if let Some(ref policy) = req.misfire_policy {
         if !policy.is_null() {
             job.misfire_policy_json = policy.clone();
+        }
+    }
+    if let Some(ref pool) = req.pool {
+        match normalize_pool(pool) {
+            Ok(pool) => job.pool = pool,
+            Err(msg) => {
+                return (StatusCode::BAD_REQUEST, Json(ApiResponse::err(msg)));
+            }
         }
     }
     job.clamp_security_bounds();
