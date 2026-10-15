@@ -9,3 +9,6 @@ infra/aws/chronon/fleet-state.json
 infra/aws/chronon/scaling-fleet/instances.env
 infra/aws/chronon/scaling-fleet/instances.cells.env
 infra/aws/chronon/scaling-fleet/instance-ids.txt
+
+# Coverage output
+/lcov.info
