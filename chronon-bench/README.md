@@ -61,4 +61,4 @@ Local sweeps: [`scripts/`](scripts/) — `run-embed-burst.sh`, `run-ch7-d0-worke
 
 AWS hyperscale (CH7-D0–D4): provision, deploy, full campaign, and fetch reports on AWS EC2 (operator campaign).
 
-**Reports:** `profiling/chronon-bench/reports/` — baseline JSON on `aws-t3.medium`; CH7-D curves on `aws-c6i-large` label.
+**Reports:** runs write to `profiling/chronon-bench/reports/` as local scratch (gitignored). Decision-grade JSON (baseline on `aws-t3.medium`, CH7-D curves on the `aws-c6i-large` label) is kept in the lab repo (uf-live-cloud-lab) under `chronon/reports/bench/`.
