@@ -220,7 +220,7 @@ Selected via **`ChrononBuilder`** methods (embedded, coordinator, worker, remote
 
 ## Benchmarks
 
-Runs write JSON to `profiling/chronon-bench/reports/` as local scratch (gitignored). Decision-grade JSON from AWS runs is kept in the lab repo (uf-live-cloud-lab) under `chronon/reports/bench/`. Run locally or on AWS:
+Runs write JSON to `profiling/chronon-bench/reports/` as local scratch (gitignored). Decision-grade AWS results aren't committed to this repo. Run locally or on AWS:
 
 ```bash
 # List experiments and run a smoke cell

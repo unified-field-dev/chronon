@@ -2,7 +2,7 @@
 
 Performance CLI and experiment registry for BM-CH* (scheduler layer) and BM-CH7-D hyperscale campaigns. Run benchmark sweeps, matrix slices, scaling curves, and fleet aggregation.
 
-**Docs:** [`PERFORMANCE.md`](PERFORMANCE.md). AWS campaign rows live in the cloud-lab Chronon study (`uf-live-cloud-lab/chronon/docs/PERFORMANCE_STUDY.md`).
+**Docs:** [`PERFORMANCE.md`](PERFORMANCE.md).
 
 ## Subcommands
 
@@ -61,4 +61,4 @@ Local sweeps: [`scripts/`](scripts/) — `run-embed-burst.sh`, `run-ch7-d0-worke
 
 AWS hyperscale (CH7-D0–D4): provision, deploy, full campaign, and fetch reports on AWS EC2 (operator campaign).
 
-**Reports:** runs write to `profiling/chronon-bench/reports/` as local scratch (gitignored). Decision-grade JSON (baseline on `aws-t3.medium`, CH7-D curves on the `aws-c6i-large` label) is kept in the lab repo (uf-live-cloud-lab) under `chronon/reports/bench/`.
+**Reports:** runs write to `profiling/chronon-bench/reports/` as local scratch (gitignored). Decision-grade AWS results (baseline on `aws-t3.medium`, CH7-D curves on the `aws-c6i-large` label) aren't committed to this repo.

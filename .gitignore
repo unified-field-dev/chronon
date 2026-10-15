@@ -13,5 +13,5 @@ infra/aws/chronon/scaling-fleet/instance-ids.txt
 # Coverage output
 /lcov.info
 
-# Bench reports live in uf-live-cloud-lab/chronon/reports/bench/
+# Local bench output; decision-grade results aren't kept in this repo
 /profiling/chronon-bench/reports/
