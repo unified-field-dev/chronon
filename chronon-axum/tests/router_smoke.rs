@@ -759,6 +759,43 @@ async fn upsert_rejects_system_shaped_actor_json() {
 }
 
 #[tokio::test]
+async fn upsert_rejects_service_user_shaped_actor_json() {
+    let state = test_state();
+    let app = test_app(state.clone());
+    let body = serde_json::json!({
+        "job_name": "elevated_svc",
+        "script_name": "test_script",
+        "schedule_kind": "manual",
+        "actor_json": { "ServiceUser": { "service_name": "metrics-ingest" } },
+    });
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/jobs/upsert")
+                .header("content-type", "application/json")
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    let parsed: ApiResponse<JobResponse> = json_body(resp).await;
+    assert!(!parsed.success);
+    assert!(parsed
+        .error
+        .as_deref()
+        .unwrap_or("")
+        .contains("ServiceUser"));
+    assert!(state
+        .chronon
+        .coordinator
+        .get_job_by_name("elevated_svc")
+        .await
+        .is_none());
+}
+
+#[tokio::test]
 async fn auth_middleware_rejects_without_bearer() {
     use axum::http::header;
     use axum::middleware::{self, Next};
