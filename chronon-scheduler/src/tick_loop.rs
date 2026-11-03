@@ -18,6 +18,11 @@ use crate::env::env_flag;
 use crate::partition_assigner::PartitionAssigner;
 use crate::partitioning::{self, job_execution_pool_id};
 
+/// Longest an idle tick sleeps. Jobs added or changed while the loop sleeps (from this process,
+/// the HTTP API, a remote client or a direct store write) are picked up on the next tick, so this
+/// bounds how late a new job can fire.
+const MAX_IDLE_SLEEP: Duration = Duration::from_secs(1);
+
 async fn count_active_runs(store: &Arc<dyn SchedulerStore>, job_id: &str) -> Result<i32> {
     let runs = store.list_runs_for_job(job_id, 10_000).await?;
     Ok(runs.iter().filter(|r| r.status.is_active()).count() as i32)
@@ -281,6 +286,90 @@ mod misfire_tests {
     }
 }
 
+#[cfg(test)]
+mod idle_sleep_tests {
+    use super::*;
+    use crate::{Scheduler, SchedulerConfig};
+    use chronon_backend_mem::InMemorySchedulerStore;
+    use chronon_telemetry::NoOpSink;
+
+    fn cron_job(name: &str, next_run_at: DateTime<Utc>) -> Job {
+        let mut job = Job::new(name, "test_script");
+        job.schedule_kind = ScheduleKind::Cron;
+        job.cron_expr = Some("* * * * *".to_string());
+        job.next_run_at = Some(next_run_at);
+        job.partition_hash = Some(0);
+        job.enabled = true;
+        job
+    }
+
+    async fn embedded_scheduler(store: Arc<dyn SchedulerStore>) -> Scheduler {
+        let scheduler = Scheduler::new(
+            SchedulerConfig {
+                embedded: true,
+                num_partitions: 1,
+                ..Default::default()
+            },
+            store,
+            Arc::new(NoOpSink),
+        );
+        scheduler.init_partitions().await;
+        scheduler
+    }
+
+    #[tokio::test]
+    async fn idle_tick_sleeps_at_most_max_idle() {
+        let store: Arc<dyn SchedulerStore> = Arc::new(InMemorySchedulerStore::new());
+        let far = cron_job("far-job", Utc::now() + chrono::Duration::hours(1));
+        store.upsert_job(&far).await.unwrap();
+        let scheduler = embedded_scheduler(Arc::clone(&store)).await;
+
+        let result = tokio::time::timeout(Duration::from_secs(2), scheduler.tick_once())
+            .await
+            .expect("idle tick should wake within MAX_IDLE_SLEEP")
+            .unwrap();
+        assert_eq!(result.due_count, 0);
+    }
+
+    #[tokio::test]
+    async fn loop_picks_up_job_added_while_idle() {
+        let store: Arc<dyn SchedulerStore> = Arc::new(InMemorySchedulerStore::new());
+        let far = cron_job("far-job", Utc::now() + chrono::Duration::hours(1));
+        store.upsert_job(&far).await.unwrap();
+        let scheduler = embedded_scheduler(Arc::clone(&store)).await;
+
+        let shutdown = Arc::new(Notify::new());
+        let loop_task = tokio::spawn(run_coordinator_tick_loop(
+            Arc::clone(&store),
+            scheduler.telemetry(),
+            scheduler.instance_id().to_string(),
+            scheduler.assigner(),
+            Arc::new(AtomicBool::new(true)),
+            Arc::clone(&shutdown),
+        ));
+        sleep(Duration::from_millis(100)).await;
+
+        let due = cron_job("due-job", Utc::now());
+        store.upsert_job(&due).await.unwrap();
+
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(3);
+        loop {
+            let runs = store.list_runs_for_job(&due.job_id, 10).await.unwrap();
+            if !runs.is_empty() {
+                break;
+            }
+            assert!(
+                tokio::time::Instant::now() < deadline,
+                "job added while idle was not enqueued within 3 s"
+            );
+            sleep(Duration::from_millis(50)).await;
+        }
+
+        shutdown.notify_waiters();
+        loop_task.abort();
+    }
+}
+
 /// Result of one coordinator tick.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TickResult {
@@ -294,6 +383,8 @@ pub struct TickResult {
 ///
 /// Honors `CHRONON_DISABLE_COORDINATOR` and drains quickly when the due batch is large.
 /// Updates `draining` to request shorter sleeps on subsequent ticks when backlogged.
+/// With nothing due, sleeps until the next known fire time but never more than one second,
+/// so jobs added or changed from any process are seen within about a second.
 #[tracing::instrument(
     skip(store, telemetry, assigner, draining),
     fields(instance_id = %instance_id)
@@ -360,7 +451,7 @@ pub async fn run_one_tick(
                     .num_milliseconds()
                     .saturating_sub(buf_ms)
                     .max(0);
-                Duration::from_millis(ms as u64).min(Duration::from_secs(24 * 3600))
+                Duration::from_millis(ms as u64).min(MAX_IDLE_SLEEP)
             }
             _ => Duration::from_millis(tick_ms),
         };
