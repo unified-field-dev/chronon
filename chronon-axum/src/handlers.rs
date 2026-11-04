@@ -1,8 +1,8 @@
 //! Axum route handlers for `/api/chronon/*`.
 //!
-//! All routes extract [`RequireAdmin`]. HTTP upsert rejects System-shaped `actor_json`
-//! via [`RejectExternalPrivilegedActor`] (`EnqueueTrust::External`). In-process
-//! [`CoordinatorService`](chronon_runtime::CoordinatorService) upsert may still set System.
+//! All routes extract [`RequireAdmin`]. HTTP upsert rejects System- and ServiceUser-shaped
+//! `actor_json` via [`RejectExternalPrivilegedActor`] (`EnqueueTrust::External`). In-process
+//! [`CoordinatorService`](chronon_runtime::CoordinatorService) upsert may still set either.
 
 use axum::{
     extract::{Path, Query, State},
