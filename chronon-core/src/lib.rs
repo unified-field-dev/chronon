@@ -42,9 +42,11 @@ pub mod store;
 #[cfg(test)]
 mod unit_tests;
 
+#[allow(deprecated)]
+pub use actor_policy::RejectExternalSystemActor;
 pub use actor_policy::{
-    default_http_enqueue_actor, is_system_shaped_actor, ActorJsonPolicy, EnqueueTrust,
-    RejectExternalSystemActor,
+    default_http_enqueue_actor, is_service_user_shaped_actor, is_system_shaped_actor,
+    ActorJsonPolicy, EnqueueTrust, RejectExternalPrivilegedActor,
 };
 pub use context::{
     ContextFactory, IdentityError, JsonScriptContextFactory, NoOpContextFactory, NoOpScriptContext,

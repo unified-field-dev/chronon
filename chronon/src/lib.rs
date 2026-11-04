@@ -309,7 +309,7 @@
 //! |---------|--------|
 //! | Upsert-by-name | Axum upsert + `get_job_by_name` |
 //! | AdminAuth / require flag | `chronon-axum` `RequireAdmin` + `CHRONON_REQUIRE_ADMIN_AUTH` |
-//! | External System actor | `RejectExternalSystemActor` on HTTP upsert |
+//! | External System / ServiceUser actor | `RejectExternalPrivilegedActor` on HTTP upsert |
 //! | Actor snapshot at execute | Runtime worker / `Executor::spawn_run` use run `actor_json` |
 //! | List / policy bounds | `MAX_*` + `Job::clamp_security_bounds` / handler `.min(MAX_LIST_LIMIT)` |
 //! | Revision HTTP redaction | Axum revision handlers |

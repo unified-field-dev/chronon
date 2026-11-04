@@ -13,8 +13,8 @@
 //! | Custom [`ContextFactory`] | Production apps that map actor JSON to sessions, permissions, database access, or other application identity |
 //!
 //! Install the factory at runtime boot on `ChrononBuilder` (see `chronon-runtime`).
-//! On external HTTP APIs, Chronon rejects System-shaped `actor_json`
-//! ([`RejectExternalSystemActor`](crate::RejectExternalSystemActor)). Hosts should still
+//! On external HTTP APIs, Chronon rejects System- and ServiceUser-shaped
+//! `actor_json` ([`RejectExternalPrivilegedActor`](crate::RejectExternalPrivilegedActor)). Hosts should still
 //! implement factories that **fail closed** on other untrusted payloads.
 
 use serde_json::Value;

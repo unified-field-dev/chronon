@@ -10,8 +10,8 @@
 //!   [`StaticTokenAdminAuth`] / [`AllowAllAdminAuth`]. Production identity belongs to Higgs.
 //! - **`CHRONON_REQUIRE_ADMIN_AUTH`** — when set, [`ChrononStateBuilder::build`] and
 //!   [`RequireAdmin`] fail closed without a verifier.
-//! - **External actor policy** — HTTP upsert rejects System-shaped `actor_json`
-//!   ([`RejectExternalSystemActor`](chronon_core::RejectExternalSystemActor)).
+//! - **External actor policy** — HTTP upsert rejects System- and ServiceUser-shaped
+//!   `actor_json` ([`RejectExternalPrivilegedActor`](chronon_core::RejectExternalPrivilegedActor)).
 //! - **Error hygiene** — HTTP envelopes sanitize/redact credentials in error strings.
 //!
 //! # Security
