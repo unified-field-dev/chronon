@@ -3,7 +3,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 
-use crate::error::Result;
+use crate::error::{ChrononError, Result};
 use crate::models::{
     Job, JobRevision, PartitionAssignment, Run, RunStatus, SchedulerLeader, Script, Worker,
 };
@@ -56,7 +56,9 @@ pub trait SchedulerStore: Send + Sync {
     ///
     /// # Contract
     ///
-    /// Replaces the full row; callers must send complete job state on update.
+    /// Replaces the full row; callers must send complete job state on update. Returns
+    /// [`ChrononError::JobNameTaken`] when another `job_id` already holds [`Job::job_name`];
+    /// look the job up with [`Self::get_job_by_name`] and update it under its existing id.
     async fn upsert_job(&self, job: &Job) -> Result<()>;
 
     /// Look up a job by primary key.
@@ -80,6 +82,19 @@ pub trait SchedulerStore: Send + Sync {
 
     /// Re-enable automatic scheduling after [`Self::pause_job`].
     async fn resume_job(&self, job_id: &str) -> Result<()>;
+
+    /// Delete a job row and its revisions. Returns `false` when no job has `job_id`.
+    ///
+    /// # Contract
+    ///
+    /// Frees [`Job::job_name`] for reuse. Runs already recorded for the job stay as history.
+    /// The default body returns [`ChrononError::Internal`] so custom stores written before this
+    /// method existed keep compiling; every bundled adapter overrides it.
+    async fn delete_job(&self, job_id: &str) -> Result<bool> {
+        Err(ChrononError::Internal(format!(
+            "delete_job is not supported by this store (job '{job_id}')"
+        )))
+    }
 
     // --- Runs ---
 

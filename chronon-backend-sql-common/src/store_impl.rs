@@ -44,6 +44,10 @@ impl SchedulerStore for SqlSchedulerStore {
         jobs::resume_job(self, job_id).await
     }
 
+    async fn delete_job(&self, job_id: &str) -> Result<bool> {
+        jobs::delete_job(self, job_id).await
+    }
+
     async fn create_run(&self, run: &Run) -> Result<()> {
         runs::create_run(self, run).await
     }

@@ -99,6 +99,10 @@ impl SchedulerStore for PostgresRedisSchedulerStore {
         self.sql.pause_job(job_id).await
     }
 
+    async fn delete_job(&self, job_id: &str) -> Result<bool> {
+        self.sql.delete_job(job_id).await
+    }
+
     async fn resume_job(&self, job_id: &str) -> Result<()> {
         self.sql.resume_job(job_id).await
     }

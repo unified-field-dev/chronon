@@ -7,7 +7,7 @@ use chronon_core::models::{
     Job, JobRevision, Run, RunStatus, ScheduleKind, Script, Worker, WorkerStatus,
 };
 use chronon_core::store::SchedulerStore;
-use chronon_core::Result;
+use chronon_core::{ChrononError, Result};
 use serde_json::json;
 
 fn cron_job_due(name: &str, partition_hash: i64) -> Job {
@@ -29,6 +29,8 @@ fn queued_run(job_id: &str, pool_id: Option<&str>, scheduled_for: chrono::DateTi
 pub async fn run_store_contract(store: Arc<dyn SchedulerStore>) -> Result<()> {
     let store_ref = store.as_ref();
     upsert_job_roundtrip_by_name(store_ref).await?;
+    upsert_job_rejects_taken_name(store_ref).await?;
+    delete_job_removes_row_and_frees_name(store_ref).await?;
     list_due_jobs_respects_enabled_and_next_run_at(store_ref).await?;
     claim_job_for_tick_exclusive_then_reclaim_after_release(store_ref).await?;
     find_due_respects_partition_filter(store_ref).await?;
@@ -58,6 +60,71 @@ async fn upsert_job_roundtrip_by_name(store: &dyn SchedulerStore) -> Result<()> 
 
     let by_name = store.get_job_by_name("nightly").await?.expect("found");
     assert_eq!(by_name.job_id, job_id);
+    Ok(())
+}
+
+async fn upsert_job_rejects_taken_name(store: &dyn SchedulerStore) -> Result<()> {
+    let first = cron_job_due("name-taken", 0);
+    store.upsert_job(&first).await?;
+
+    let mut updated = first.clone();
+    updated.current_revision += 1;
+    store.upsert_job(&updated).await?;
+    let stored = store.get_job(&first.job_id).await?.expect("found");
+    assert_eq!(stored.current_revision, updated.current_revision);
+
+    let second = cron_job_due("name-taken", 0);
+    let err = store
+        .upsert_job(&second)
+        .await
+        .expect_err("second job under a taken name");
+    assert!(
+        matches!(
+            err,
+            ChrononError::JobNameTaken { ref job_name, ref existing_job_id }
+                if job_name == "name-taken" && *existing_job_id == first.job_id
+        ),
+        "unexpected error: {err}"
+    );
+    assert!(store.get_job(&second.job_id).await?.is_none());
+    let by_name = store.get_job_by_name("name-taken").await?.expect("found");
+    assert_eq!(by_name.job_id, first.job_id);
+    let named = store
+        .list_jobs()
+        .await?
+        .iter()
+        .filter(|j| j.job_name == "name-taken")
+        .count();
+    assert_eq!(named, 1);
+
+    assert!(store.delete_job(&first.job_id).await?);
+    Ok(())
+}
+
+async fn delete_job_removes_row_and_frees_name(store: &dyn SchedulerStore) -> Result<()> {
+    let job = cron_job_due("delete-me", 0);
+    let job_id = job.job_id.clone();
+    store.upsert_job(&job).await?;
+    store
+        .append_revision(&JobRevision::new(&job_id, 1, json!(null), json!({})))
+        .await?;
+
+    assert!(store.delete_job(&job_id).await?);
+    assert!(store.get_job(&job_id).await?.is_none());
+    assert!(store.get_job_by_name("delete-me").await?.is_none());
+    assert!(store
+        .list_due_jobs(Utc::now())
+        .await?
+        .iter()
+        .all(|j| j.job_id != job_id));
+    assert!(store.list_revisions(&job_id).await?.is_empty());
+    assert!(!store.delete_job(&job_id).await?);
+
+    let reused = cron_job_due("delete-me", 0);
+    store.upsert_job(&reused).await?;
+    let by_name = store.get_job_by_name("delete-me").await?.expect("found");
+    assert_eq!(by_name.job_id, reused.job_id);
+    assert!(store.delete_job(&reused.job_id).await?);
     Ok(())
 }
 

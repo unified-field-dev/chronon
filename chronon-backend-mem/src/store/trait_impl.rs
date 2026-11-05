@@ -37,6 +37,10 @@ impl SchedulerStore for InMemorySchedulerStore {
         jobs::pause_job(self, job_id)
     }
 
+    async fn delete_job(&self, job_id: &str) -> Result<bool> {
+        jobs::delete_job(self, job_id)
+    }
+
     async fn resume_job(&self, job_id: &str) -> Result<()> {
         jobs::resume_job(self, job_id)
     }

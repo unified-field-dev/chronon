@@ -56,39 +56,62 @@ pub(crate) async fn upsert_job(store: &SqlSchedulerStore, job: &Job) -> Result<(
             updated_at = excluded.updated_at,
             created_at = excluded.created_at",
     );
-    sql_execute!(store, &sql, |q| {
-        let enabled_flag = i32::from(row.enabled);
-        q.bind(&row.job_id)
-            .bind(&row.job_name)
-            .bind(&row.script_name)
-            .bind(&row.script_sig_hash)
-            .bind(enabled_flag)
-            .bind(&row.schedule_kind)
-            .bind(&row.cron_expr)
-            .bind(&row.timezone)
-            .bind(row.run_once_at)
-            .bind(row.run_once_claimed_at)
-            .bind(&row.run_once_claimed_by)
-            .bind(row.run_once_completed_at)
-            .bind(row.run_once_claim_expires_at)
-            .bind(row.partition_hash)
-            .bind(&row.claim_lease_id)
-            .bind(row.claim_lease_until)
-            .bind(&row.pool)
-            .bind(&row.region)
-            .bind(&row.placement_json)
-            .bind(&row.actor_json)
-            .bind(&row.params_json)
-            .bind(row.concurrency)
-            .bind(row.timeout_ms)
-            .bind(&row.retry_policy_json)
-            .bind(&row.misfire_policy_json)
-            .bind(&row.parent_limits_json)
-            .bind(row.next_run_at)
-            .bind(row.current_revision)
-            .bind(row.updated_at)
-            .bind(row.created_at)
-    })
+    // `sql_execute!` returns early on error via `?`; the async block keeps that error local.
+    let result = async {
+        sql_execute!(store, &sql, |q| {
+            let enabled_flag = i32::from(row.enabled);
+            q.bind(&row.job_id)
+                .bind(&row.job_name)
+                .bind(&row.script_name)
+                .bind(&row.script_sig_hash)
+                .bind(enabled_flag)
+                .bind(&row.schedule_kind)
+                .bind(&row.cron_expr)
+                .bind(&row.timezone)
+                .bind(row.run_once_at)
+                .bind(row.run_once_claimed_at)
+                .bind(&row.run_once_claimed_by)
+                .bind(row.run_once_completed_at)
+                .bind(row.run_once_claim_expires_at)
+                .bind(row.partition_hash)
+                .bind(&row.claim_lease_id)
+                .bind(row.claim_lease_until)
+                .bind(&row.pool)
+                .bind(&row.region)
+                .bind(&row.placement_json)
+                .bind(&row.actor_json)
+                .bind(&row.params_json)
+                .bind(row.concurrency)
+                .bind(row.timeout_ms)
+                .bind(&row.retry_policy_json)
+                .bind(&row.misfire_policy_json)
+                .bind(&row.parent_limits_json)
+                .bind(row.next_run_at)
+                .bind(row.current_revision)
+                .bind(row.updated_at)
+                .bind(row.created_at)
+        })
+    }
+    .await;
+    match result {
+        Err(ChrononError::StorageError { message, source })
+            if message.contains("UNIQUE")
+                || message.contains("unique")
+                || message.contains("duplicate") =>
+        {
+            // The upsert is keyed on job_id, so a unique violation means job_name collided.
+            match get_job_by_name(store, &job.job_name).await? {
+                Some(existing) if existing.job_id != job.job_id => {
+                    Err(ChrononError::JobNameTaken {
+                        job_name: job.job_name.clone(),
+                        existing_job_id: existing.job_id,
+                    })
+                }
+                _ => Err(ChrononError::StorageError { message, source }),
+            }
+        }
+        other => other,
+    }
 }
 
 pub(crate) async fn get_job(store: &SqlSchedulerStore, job_id: &str) -> Result<Option<Job>> {
@@ -153,4 +176,18 @@ pub(crate) async fn resume_job(store: &SqlSchedulerStore, job_id: &str) -> Resul
         return Err(ChrononError::JobNotFound(job_id.to_string()));
     }
     Ok(())
+}
+
+pub(crate) async fn delete_job(store: &SqlSchedulerStore, job_id: &str) -> Result<bool> {
+    if get_job(store, job_id).await?.is_none() {
+        return Ok(false);
+    }
+    let sql = bind_sql(
+        store.dialect,
+        "DELETE FROM chronon_job_revision WHERE job_id = ?",
+    );
+    sql_execute!(store, &sql, |q| q.bind(job_id))?;
+    let sql = bind_sql(store.dialect, "DELETE FROM chronon_job WHERE job_id = ?");
+    sql_execute!(store, &sql, |q| q.bind(job_id))?;
+    Ok(true)
 }
