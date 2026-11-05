@@ -9,7 +9,7 @@ HTTP API under `/api/chronon/*` — jobs, runs, scripts.
 | `AdminAuth` / `RequireAdmin` | Host verifier on `ChrononState`; lab: `StaticTokenAdminAuth`, `AllowAllAdminAuth` |
 | `CHRONON_REQUIRE_ADMIN_AUTH` | Builder and extractor fail closed without a verifier |
 | Upsert | Matched by `job_name`; updates preserve `job_id` and bump revision |
-| External `actor_json` | Rejects System-shaped JSON; in-process may set System |
+| External `actor_json` | Rejects System- and ServiceUser-shaped JSON; in-process may set either |
 | List jobs/runs | Default `limit` 100, capped at 1000 |
 | Revisions | HTTP response redacts actor/params; store keeps full snapshots |
 | Errors | Sanitize + redact URL userinfo in envelopes |

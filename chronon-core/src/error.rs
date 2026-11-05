@@ -48,6 +48,16 @@ pub enum ChrononError {
         job_name: String,
     },
 
+    /// Another job already uses this [`Job::job_name`](crate::models::Job::job_name) under a
+    /// different `job_id`. Reuse `existing_job_id` to update that job, or delete it first.
+    #[error("job name '{job_name}' is already used by job '{existing_job_id}'")]
+    JobNameTaken {
+        /// The job name that collided.
+        job_name: String,
+        /// `job_id` of the job that already holds the name.
+        existing_job_id: String,
+    },
+
     /// Underlying storage backend failed or returned an unexpected condition.
     #[error("storage error: {message}")]
     StorageError {

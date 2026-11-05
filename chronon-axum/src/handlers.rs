@@ -1,8 +1,8 @@
 //! Axum route handlers for `/api/chronon/*`.
 //!
-//! All routes extract [`RequireAdmin`]. HTTP upsert rejects System-shaped `actor_json`
-//! via [`RejectExternalSystemActor`] (`EnqueueTrust::External`). In-process
-//! [`CoordinatorService`](chronon_runtime::CoordinatorService) upsert may still set System.
+//! All routes extract [`RequireAdmin`]. HTTP upsert rejects System- and ServiceUser-shaped
+//! `actor_json` via [`RejectExternalPrivilegedActor`] (`EnqueueTrust::External`). In-process
+//! [`CoordinatorService`](chronon_runtime::CoordinatorService) upsert may still set either.
 
 use axum::{
     extract::{Path, Query, State},
@@ -11,7 +11,7 @@ use axum::{
 };
 
 use chronon_core::{
-    ActorJsonPolicy, ChrononError, EnqueueTrust, Job, RejectExternalSystemActor, ScheduleKind,
+    ActorJsonPolicy, ChrononError, EnqueueTrust, Job, RejectExternalPrivilegedActor, ScheduleKind,
     MAX_LIST_LIMIT,
 };
 
@@ -93,7 +93,7 @@ pub async fn upsert_job(
     job.timeout_ms = req.timeout_ms;
     if let Some(ref actor) = req.actor_json {
         if !actor.is_null() {
-            if let Err(e) = RejectExternalSystemActor.validate(EnqueueTrust::External, actor) {
+            if let Err(e) = RejectExternalPrivilegedActor.validate(EnqueueTrust::External, actor) {
                 return chronon_err(&e);
             }
             job.actor_json = actor.clone();
@@ -234,7 +234,7 @@ pub async fn resume_job(
 /// `POST /jobs/run_now` — enqueue an immediate run; returns new `run_id` in `data`.
 ///
 /// Actor identity comes from the job row (snapshotted onto the run). Clients cannot supply
-/// `actor_json` on this route; set identity via upsert (external rejects System) or in-process.
+/// `actor_json` on this route; set identity via upsert (external rejects System and ServiceUser) or in-process.
 #[tracing::instrument(skip(_admin, state, req), fields(job_id = %req.job_id))]
 pub async fn run_now(
     _admin: RequireAdmin,

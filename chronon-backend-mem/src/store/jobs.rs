@@ -43,6 +43,10 @@ pub(super) fn list_due_jobs(
         .collect())
 }
 
+pub(super) fn delete_job(store: &InMemorySchedulerStore, job_id: &str) -> Result<bool> {
+    Ok(store.remove_job(job_id))
+}
+
 pub(super) fn pause_job(store: &InMemorySchedulerStore, job_id: &str) -> Result<()> {
     store.mutate_job(job_id, |j| j.enabled = false)
 }

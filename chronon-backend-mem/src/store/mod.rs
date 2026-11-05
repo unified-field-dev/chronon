@@ -89,12 +89,42 @@ impl InMemorySchedulerStore {
     }
 
     /// Insert or replace a job and update the name index.
+    ///
+    /// Rejects a name already held by another `job_id` with [`ChrononError::JobNameTaken`],
+    /// matching the SQL `UNIQUE (job_name)` constraint, so the old row can't stay due unseen.
     pub(super) fn write_job(&self, job: Job) -> Result<()> {
         let mut jobs = self.jobs.write();
         let mut by_name = self.jobs_by_name.write();
+        if let Some(existing_job_id) = by_name.get(&job.job_name) {
+            if *existing_job_id != job.job_id {
+                return Err(ChrononError::JobNameTaken {
+                    job_name: job.job_name,
+                    existing_job_id: existing_job_id.clone(),
+                });
+            }
+        }
+        if let Some(previous) = jobs.get(&job.job_id) {
+            if previous.job_name != job.job_name {
+                by_name.remove(&previous.job_name);
+            }
+        }
         by_name.insert(job.job_name.clone(), job.job_id.clone());
         jobs.insert(job.job_id.clone(), job);
         Ok(())
+    }
+
+    /// Remove a job, its name index entry, and its revisions. Runs stay as history.
+    pub(super) fn remove_job(&self, job_id: &str) -> bool {
+        let mut jobs = self.jobs.write();
+        let mut by_name = self.jobs_by_name.write();
+        let Some(job) = jobs.remove(job_id) else {
+            return false;
+        };
+        by_name.remove(&job.job_name);
+        drop(by_name);
+        drop(jobs);
+        self.revisions.write().remove(job_id);
+        true
     }
 
     /// Mutate an existing job and stamp `updated_at` to now.

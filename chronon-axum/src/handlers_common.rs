@@ -48,7 +48,9 @@ pub fn chronon_status(err: &ChrononError) -> StatusCode {
         | ChrononError::InvalidTimezone(_)
         | ChrononError::ParamError(_)
         | ChrononError::Identity(_) => StatusCode::BAD_REQUEST,
-        ChrononError::ScriptMismatch { .. } => StatusCode::CONFLICT,
+        ChrononError::ScriptMismatch { .. } | ChrononError::JobNameTaken { .. } => {
+            StatusCode::CONFLICT
+        }
         ChrononError::StorageError { .. }
         | ChrononError::Internal(_)
         | ChrononError::InternalSource { .. } => StatusCode::INTERNAL_SERVER_ERROR,

@@ -46,6 +46,10 @@ macro_rules! delegate_scheduler_store {
                 self.$field.resume_job(job_id).await
             }
 
+            async fn delete_job(&self, job_id: &str) -> ::chronon_core::Result<bool> {
+                self.$field.delete_job(job_id).await
+            }
+
             async fn create_run(
                 &self,
                 run: &::chronon_core::models::Run,

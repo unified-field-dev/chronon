@@ -119,6 +119,14 @@ impl CoordinatorService {
                 self.store.append_revision(&revision).await?;
             }
         } else {
+            // Reject a taken name before writing revision 1, so a refused upsert leaves no
+            // revision behind for a job that was never stored.
+            if let Some(holder) = self.store.get_job_by_name(&job.job_name).await? {
+                return Err(ChrononError::JobNameTaken {
+                    job_name: job.job_name,
+                    existing_job_id: holder.job_id,
+                });
+            }
             let revision = JobRevision::new(
                 &job.job_id,
                 1,
@@ -129,6 +137,14 @@ impl CoordinatorService {
         }
 
         self.store.upsert_job(&job).await
+    }
+
+    /// Delete a job and its revisions. Returns `false` when no job has `job_id`.
+    ///
+    /// The job's name becomes free for a new job. Runs already recorded stay as history;
+    /// queued runs are not canceled.
+    pub async fn delete_job(&self, job_id: &str) -> Result<bool> {
+        self.store.delete_job(job_id).await
     }
 
     /// Load a job by stable `job_id`.
@@ -279,5 +295,42 @@ mod tests {
         svc.upsert_job(job.clone()).await.unwrap();
         let run_id = svc.run_now(&job.job_id).await.unwrap();
         assert_ne!(run_id, "");
+    }
+
+    #[tokio::test]
+    async fn upsert_rejects_taken_name_without_revision_sad() {
+        let store = Arc::new(InMemorySchedulerStore::new());
+        let svc = CoordinatorService::new(store.clone());
+        let first = Job::new("feed-sync", "script_a");
+        svc.upsert_job(first.clone()).await.unwrap();
+
+        let second = Job::new("feed-sync", "script_a");
+        let err = svc.upsert_job(second.clone()).await.unwrap_err();
+        assert!(matches!(
+            err,
+            ChrononError::JobNameTaken { ref existing_job_id, .. } if *existing_job_id == first.job_id
+        ));
+        assert_eq!(svc.list_jobs().await.unwrap().len(), 1);
+        assert!(store
+            .list_revisions(&second.job_id)
+            .await
+            .unwrap()
+            .is_empty());
+    }
+
+    #[tokio::test]
+    async fn delete_job_frees_name_happy() {
+        let store = Arc::new(InMemorySchedulerStore::new());
+        let svc = CoordinatorService::new(store);
+        let first = Job::new("feed-sync", "script_a");
+        svc.upsert_job(first.clone()).await.unwrap();
+
+        assert!(svc.delete_job(&first.job_id).await.unwrap());
+        assert!(!svc.delete_job(&first.job_id).await.unwrap());
+
+        let second = Job::new("feed-sync", "script_a");
+        svc.upsert_job(second.clone()).await.unwrap();
+        let by_name = svc.get_job_by_name("feed-sync").await.unwrap();
+        assert_eq!(by_name.job_id, second.job_id);
     }
 }
