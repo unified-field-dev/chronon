@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use chronon_core::models::{Job, JobRevision, Run, RunStatus, ScheduleKind};
+use chronon_core::models::{Job, JobRevision, Run, RunKey, RunStatus, ScheduleKind};
 use chronon_core::store::SchedulerStore;
 use chronon_core::{ChrononError, Result};
 use chronon_scheduler::{job_execution_pool_id, partition_hash_i64_for_job_id, CronExpr};
@@ -178,7 +178,8 @@ impl CoordinatorService {
 
     /// Paginated run listing with optional `job_id` and status string filters.
     ///
-    /// Unrecognized status strings are ignored (no filter).
+    /// Newest first (`scheduled_for`, then `run_id`, both descending). Unrecognized status
+    /// strings are ignored (no filter).
     pub async fn list_runs(
         &self,
         job_id: Option<&str>,
@@ -189,6 +190,29 @@ impl CoordinatorService {
         let status_filter = status.and_then(parse_run_status);
         self.store
             .list_runs_filtered(job_id, status_filter, offset, limit)
+            .await
+    }
+
+    /// Keyset run listing: up to `limit` runs that sort after `after`, newest first.
+    ///
+    /// Pass the [`RunKey`] of the last run on a page to get the next one; `None` starts at the
+    /// newest run. Ordering, tie-break, and behavior under concurrent inserts follow
+    /// [`SchedulerStore::list_runs_after`]. Unrecognized status strings are ignored (no
+    /// filter), as in [`Self::list_runs`].
+    ///
+    /// # Errors
+    ///
+    /// Returns a storage error when the underlying store fails.
+    pub async fn list_runs_after(
+        &self,
+        job_id: Option<&str>,
+        status: Option<&str>,
+        after: Option<&RunKey>,
+        limit: usize,
+    ) -> Result<Vec<Run>> {
+        let status_filter = status.and_then(parse_run_status);
+        self.store
+            .list_runs_after(job_id, status_filter, after, limit)
             .await
     }
 

@@ -133,6 +133,29 @@ pub struct Run {
     pub claim_lease_until: Option<DateTime<Utc>>,
 }
 
+/// Position of a run in the newest-first run listing, used as a keyset cursor.
+///
+/// Runs are ordered by `scheduled_for` descending, then `run_id` descending. Pass the key of
+/// the last run on one page as `after` to
+/// [`SchedulerStore::list_runs_after`](crate::store::SchedulerStore::list_runs_after) to read
+/// the next page.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RunKey {
+    /// [`Run::scheduled_for`] of the run this key points at.
+    pub scheduled_for: DateTime<Utc>,
+    /// [`Run::run_id`] of the run this key points at. Breaks ties between equal timestamps.
+    pub run_id: String,
+}
+
+impl From<&Run> for RunKey {
+    fn from(run: &Run) -> Self {
+        Self {
+            scheduled_for: run.scheduled_for,
+            run_id: run.run_id.clone(),
+        }
+    }
+}
+
 impl Run {
     /// Create a queued run with generated IDs and empty runtime fields.
     ///

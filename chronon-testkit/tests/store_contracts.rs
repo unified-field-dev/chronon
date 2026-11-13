@@ -11,7 +11,7 @@ use chronon_backend_postgres::{postgres_test_url, PostgresSchedulerStore};
 use chronon_backend_redis::{PostgresRedisSchedulerStore, RedisQueueLayer};
 use chronon_backend_sqlite::SqliteSchedulerStore;
 use chronon_core::store::SchedulerStore;
-use chronon_testkit::run_store_contract;
+use chronon_testkit::{run_list_runs_after_contract, run_store_contract};
 use uuid::Uuid;
 
 #[tokio::test]
@@ -62,6 +62,42 @@ async fn postgres_store_contract() {
     run_store_contract(store)
         .await
         .expect("postgres store contract");
+}
+
+#[tokio::test]
+async fn mem_keyset_contract() {
+    let store = InMemorySchedulerStore::new();
+    run_list_runs_after_contract(&store)
+        .await
+        .expect("mem keyset contract");
+}
+
+#[tokio::test]
+async fn sqlite_keyset_contract() {
+    let store = SqliteSchedulerStore::connect("sqlite://:memory:")
+        .await
+        .expect("connect");
+    run_list_runs_after_contract(&store)
+        .await
+        .expect("sqlite keyset contract");
+}
+
+#[tokio::test]
+#[ignore = "requires CHRONON_POSTGRES_URL or CHRONON_TEST_POSTGRES_URL"]
+async fn postgres_keyset_contract() {
+    if std::env::var("CHRONON_POSTGRES_URL").is_err()
+        && std::env::var("CHRONON_TEST_POSTGRES_URL").is_err()
+    {
+        panic!("postgres URL env var required for ignored test");
+    }
+    let url = postgres_test_url();
+    let schema = format!("chronon_keyset_{}", Uuid::new_v4().simple());
+    let store = PostgresSchedulerStore::connect_isolated(&url, &schema)
+        .await
+        .expect("connect postgres");
+    run_list_runs_after_contract(&store)
+        .await
+        .expect("postgres keyset contract");
 }
 
 async fn connect_redis(prefix: &str) -> Option<RedisQueueLayer> {

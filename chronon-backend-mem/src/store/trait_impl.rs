@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 
 use chronon_core::models::{
-    Job, JobRevision, PartitionAssignment, Run, RunStatus, SchedulerLeader, Script, Worker,
+    Job, JobRevision, PartitionAssignment, Run, RunKey, RunStatus, SchedulerLeader, Script, Worker,
 };
 use chronon_core::store::SchedulerStore;
 use chronon_core::Result;
@@ -69,6 +69,16 @@ impl SchedulerStore for InMemorySchedulerStore {
         limit: usize,
     ) -> Result<Vec<Run>> {
         runs::list_runs_filtered(self, job_id, status, offset, limit)
+    }
+
+    async fn list_runs_after(
+        &self,
+        job_id: Option<&str>,
+        status: Option<RunStatus>,
+        after: Option<&RunKey>,
+        limit: usize,
+    ) -> Result<Vec<Run>> {
+        runs::list_runs_after(self, job_id, status, after, limit)
     }
 
     async fn claim_next_queued(

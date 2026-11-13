@@ -3,7 +3,7 @@
 use chrono::{DateTime, Duration, Utc};
 
 use chronon_core::error::ChrononError;
-use chronon_core::models::{Run, RunStatus};
+use chronon_core::models::{Run, RunKey, RunStatus};
 use chronon_core::Result;
 
 use super::InMemorySchedulerStore;
@@ -58,8 +58,42 @@ pub(super) fn list_runs_filtered(
         .filter(|r| status.is_none_or(|s| r.status == s))
         .cloned()
         .collect();
-    runs.sort_by_key(|b| std::cmp::Reverse(b.scheduled_for));
+    sort_newest_first(&mut runs);
     Ok(runs.into_iter().skip(offset).take(limit).collect())
+}
+
+pub(super) fn list_runs_after(
+    store: &InMemorySchedulerStore,
+    job_id: Option<&str>,
+    status: Option<RunStatus>,
+    after: Option<&RunKey>,
+    limit: usize,
+) -> Result<Vec<Run>> {
+    let mut runs: Vec<_> = store
+        .runs
+        .read()
+        .values()
+        .filter(|r| job_id.is_none_or(|id| r.job_id.as_deref() == Some(id)))
+        .filter(|r| status.is_none_or(|s| r.status == s))
+        .filter(|r| {
+            after.is_none_or(|k| {
+                (r.scheduled_for, r.run_id.as_str()) < (k.scheduled_for, k.run_id.as_str())
+            })
+        })
+        .cloned()
+        .collect();
+    sort_newest_first(&mut runs);
+    runs.truncate(limit);
+    Ok(runs)
+}
+
+/// `scheduled_for` descending, then `run_id` descending (matches the SQL `ORDER BY`).
+fn sort_newest_first(runs: &mut [Run]) {
+    runs.sort_by(|a, b| {
+        b.scheduled_for
+            .cmp(&a.scheduled_for)
+            .then_with(|| b.run_id.cmp(&a.run_id))
+    });
 }
 
 pub(super) fn claim_next_queued(

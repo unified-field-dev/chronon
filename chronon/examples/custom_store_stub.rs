@@ -97,6 +97,18 @@ impl SchedulerStore for AuditingSchedulerStore {
             .await
     }
 
+    async fn list_runs_after(
+        &self,
+        job_id: Option<&str>,
+        status: Option<RunStatus>,
+        after: Option<&RunKey>,
+        limit: usize,
+    ) -> Result<Vec<Run>> {
+        self.inner
+            .list_runs_after(job_id, status, after, limit)
+            .await
+    }
+
     async fn claim_next_queued(
         &self,
         pool_id: &str,

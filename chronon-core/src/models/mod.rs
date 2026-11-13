@@ -19,7 +19,7 @@ pub use job::{
 pub use lease::Lease;
 pub use partition_assignment::PartitionAssignment;
 pub use revision::JobRevision;
-pub use run::{Run, RunStatus};
+pub use run::{Run, RunKey, RunStatus};
 pub use scheduler_leader::SchedulerLeader;
 pub use script::Script;
 pub use worker::{Worker, WorkerStatus};

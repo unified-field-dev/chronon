@@ -55,8 +55,8 @@ pub use context::{
 pub use error::{ChrononError, Result};
 pub use handle::ScriptHandle;
 pub use models::{
-    Job, JobRevision, Lease, MisfirePolicy, PartitionAssignment, RetryPolicy, Run, RunStatus,
-    ScheduleKind, SchedulerLeader, Script, Worker, WorkerStatus, MAX_JOB_CONCURRENCY,
+    Job, JobRevision, Lease, MisfirePolicy, PartitionAssignment, RetryPolicy, Run, RunKey,
+    RunStatus, ScheduleKind, SchedulerLeader, Script, Worker, WorkerStatus, MAX_JOB_CONCURRENCY,
     MAX_LIST_LIMIT, MAX_RETRY_ATTEMPTS, MAX_RETRY_DELAY_MS, MAX_TIMEOUT_MS,
 };
 pub use redact::{redact_credentials_in_text, redact_endpoint};

@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 
 use crate::error::{ChrononError, Result};
 use crate::models::{
-    Job, JobRevision, PartitionAssignment, Run, RunStatus, SchedulerLeader, Script, Worker,
+    Job, JobRevision, PartitionAssignment, Run, RunKey, RunStatus, SchedulerLeader, Script, Worker,
 };
 
 /// Async persistence port for jobs, runs, revisions, and coordinator metadata.
@@ -115,6 +115,10 @@ pub trait SchedulerStore: Send + Sync {
     async fn list_runs_for_job(&self, job_id: &str, limit: usize) -> Result<Vec<Run>>;
 
     /// Paginated run listing with optional job and status filters (HTTP list API).
+    ///
+    /// Ordered by `scheduled_for` descending, then `run_id` descending, so a given set of rows
+    /// always comes back in the same order. Offset pages can still skip or repeat rows when runs
+    /// are inserted between reads; use [`Self::list_runs_after`] for stable paging.
     async fn list_runs_filtered(
         &self,
         job_id: Option<&str>,
@@ -122,6 +126,35 @@ pub trait SchedulerStore: Send + Sync {
         offset: usize,
         limit: usize,
     ) -> Result<Vec<Run>>;
+
+    /// Keyset run listing: up to `limit` runs that sort strictly after `after`.
+    ///
+    /// # Contract
+    ///
+    /// - Order is `scheduled_for` descending, then `run_id` descending as the tie-break.
+    /// - With `after = None` the first page starts at the newest run. With `Some(key)` only runs
+    ///   whose `(scheduled_for, run_id)` is lower than `(key.scheduled_for, key.run_id)` are
+    ///   returned; the run at `key` itself is excluded, and it does not need to still exist.
+    /// - `job_id` and `status` filter rows before the limit is applied.
+    /// - Paging with the [`RunKey`] of the last row of each page visits every matching run
+    ///   exactly once. A run inserted during the scan is returned only if its key sorts after
+    ///   the current `after` (older than the last row read); one with a newer key is not
+    ///   returned by later pages and shows up when the caller starts again from `None`.
+    ///
+    /// The default body returns [`ChrononError::Internal`] so custom stores written before this
+    /// method existed keep compiling; every bundled adapter overrides it.
+    async fn list_runs_after(
+        &self,
+        job_id: Option<&str>,
+        status: Option<RunStatus>,
+        after: Option<&RunKey>,
+        limit: usize,
+    ) -> Result<Vec<Run>> {
+        let _ = (job_id, status, after, limit);
+        Err(ChrononError::Internal(
+            "list_runs_after is not supported by this store".to_string(),
+        ))
+    }
 
     /// Claim the next queued run for a worker pool.
     ///
