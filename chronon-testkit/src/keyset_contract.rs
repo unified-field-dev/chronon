@@ -22,7 +22,9 @@ const STATUSES: [RunStatus; 5] = [
     RunStatus::Canceled,
 ];
 
-/// Seed 2,500 runs across two jobs and mixed statuses, then check that paging with
+/// Contract for [`SchedulerStore::list_runs_after`] keyset paging.
+///
+/// Seeds 2,500 runs across two jobs and mixed statuses, then checks that paging with
 /// `after = last row's key` returns every matching run once, in order, and that runs
 /// inserted mid-scan are returned only when they sort after the cursor.
 ///
