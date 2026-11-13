@@ -11,7 +11,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 
 use chronon_backend_sql_common::run_pool_key;
-use chronon_core::models::{Run, RunStatus};
+use chronon_core::models::{Run, RunKey, RunStatus};
 use chronon_core::store::SchedulerStore;
 use chronon_core::Result;
 
@@ -140,6 +140,16 @@ impl SchedulerStore for PostgresRedisSchedulerStore {
         self.sql
             .list_runs_filtered(job_id, status, offset, limit)
             .await
+    }
+
+    async fn list_runs_after(
+        &self,
+        job_id: Option<&str>,
+        status: Option<RunStatus>,
+        after: Option<&RunKey>,
+        limit: usize,
+    ) -> Result<Vec<Run>> {
+        self.sql.list_runs_after(job_id, status, after, limit).await
     }
 
     async fn claim_next_queued(

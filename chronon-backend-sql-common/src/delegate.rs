@@ -91,6 +91,18 @@ macro_rules! delegate_scheduler_store {
                     .await
             }
 
+            async fn list_runs_after(
+                &self,
+                job_id: Option<&str>,
+                status: Option<::chronon_core::models::RunStatus>,
+                after: Option<&::chronon_core::models::RunKey>,
+                limit: usize,
+            ) -> ::chronon_core::Result<Vec<::chronon_core::models::Run>> {
+                self.$field
+                    .list_runs_after(job_id, status, after, limit)
+                    .await
+            }
+
             async fn claim_next_queued(
                 &self,
                 pool_id: &str,

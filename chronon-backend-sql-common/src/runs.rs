@@ -5,7 +5,7 @@
 use chrono::{DateTime, Duration, Utc};
 
 use chronon_core::error::{ChrononError, Result};
-use chronon_core::models::{Run, RunStatus};
+use chronon_core::models::{Run, RunKey, RunStatus};
 
 use crate::backend::SqlDialect;
 use crate::error_map::map_err;
@@ -142,7 +142,7 @@ pub(crate) async fn list_runs_filtered(
             let sql = bind_sql(
                 store.dialect,
                 "SELECT * FROM chronon_run WHERE job_id = ? AND status = ?
-                 ORDER BY scheduled_for DESC LIMIT ? OFFSET ?",
+                 ORDER BY scheduled_for DESC, run_id DESC LIMIT ? OFFSET ?",
             );
             sql_fetch_all_map!(
                 store,
@@ -160,7 +160,7 @@ pub(crate) async fn list_runs_filtered(
             let sql = bind_sql(
                 store.dialect,
                 "SELECT * FROM chronon_run WHERE job_id = ?
-                 ORDER BY scheduled_for DESC LIMIT ? OFFSET ?",
+                 ORDER BY scheduled_for DESC, run_id DESC LIMIT ? OFFSET ?",
             );
             sql_fetch_all_map!(
                 store,
@@ -173,7 +173,7 @@ pub(crate) async fn list_runs_filtered(
             let sql = bind_sql(
                 store.dialect,
                 "SELECT * FROM chronon_run WHERE status = ?
-                 ORDER BY scheduled_for DESC LIMIT ? OFFSET ?",
+                 ORDER BY scheduled_for DESC, run_id DESC LIMIT ? OFFSET ?",
             );
             sql_fetch_all_map!(
                 store,
@@ -185,13 +185,73 @@ pub(crate) async fn list_runs_filtered(
         (None, None) => {
             let sql = bind_sql(
                 store.dialect,
-                "SELECT * FROM chronon_run ORDER BY scheduled_for DESC LIMIT ? OFFSET ?",
+                "SELECT * FROM chronon_run ORDER BY scheduled_for DESC, run_id DESC LIMIT ? OFFSET ?",
             );
             sql_fetch_all_map!(store, &sql, |q| q.bind(limit).bind(offset), |r| row_to_run(
                 r
             ))
         }
     }
+}
+
+/// Keyset listing. Filters are added to `WHERE` only when present so the planner can use
+/// `chronon_run_job_id` or `chronon_run_scheduled_for_run_id`. The cursor predicate is written
+/// as an expanded `OR` instead of a row-value comparison so it reads the same on every SQLite
+/// version.
+pub(crate) async fn list_runs_after(
+    store: &SqlSchedulerStore,
+    job_id: Option<&str>,
+    status: Option<RunStatus>,
+    after: Option<&RunKey>,
+    limit: usize,
+) -> Result<Vec<Run>> {
+    let limit = i64::try_from(limit).unwrap_or(i64::MAX);
+    let status = status.map(run_status_to_str);
+    let mut clauses: Vec<&str> = Vec::new();
+    if job_id.is_some() {
+        clauses.push("job_id = ?");
+    }
+    if status.is_some() {
+        clauses.push("status = ?");
+    }
+    if after.is_some() {
+        clauses.push("(scheduled_for < ? OR (scheduled_for = ? AND run_id < ?))");
+    }
+    let where_sql = if clauses.is_empty() {
+        String::new()
+    } else {
+        format!(" WHERE {}", clauses.join(" AND "))
+    };
+    let sql = bind_sql(
+        store.dialect,
+        &format!(
+            "SELECT * FROM chronon_run{where_sql}
+             ORDER BY scheduled_for DESC, run_id DESC LIMIT ?"
+        ),
+    );
+    sql_fetch_all_map!(
+        store,
+        &sql,
+        |q| {
+            let q = match job_id {
+                Some(job_id) => q.bind(job_id),
+                None => q,
+            };
+            let q = match status {
+                Some(status) => q.bind(status),
+                None => q,
+            };
+            let q = match after {
+                Some(key) => q
+                    .bind(key.scheduled_for)
+                    .bind(key.scheduled_for)
+                    .bind(key.run_id.as_str()),
+                None => q,
+            };
+            q.bind(limit)
+        },
+        |r| row_to_run(r)
+    )
 }
 
 fn claim_next_queued_sql(dialect: SqlDialect) -> String {

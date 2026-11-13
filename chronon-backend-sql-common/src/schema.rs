@@ -176,7 +176,7 @@ fn schema_table_ddls() -> [&'static str; 7] {
     ]
 }
 
-fn schema_index_ddls() -> [&'static str; 5] {
+fn schema_index_ddls() -> [&'static str; 6] {
     [
         "CREATE INDEX IF NOT EXISTS chronon_job_name ON chronon_job (job_name)",
         "CREATE INDEX IF NOT EXISTS chronon_job_due_partitions ON chronon_job (next_run_at, partition_hash)
@@ -184,6 +184,7 @@ fn schema_index_ddls() -> [&'static str; 5] {
         "CREATE INDEX IF NOT EXISTS chronon_run_job_id ON chronon_run (job_id)",
         "CREATE INDEX IF NOT EXISTS chronon_run_queued_pool ON chronon_run (pool_id, scheduled_for)
              WHERE status = 'queued'",
+        "CREATE INDEX IF NOT EXISTS chronon_run_scheduled_for_run_id ON chronon_run (scheduled_for, run_id)",
         "CREATE INDEX IF NOT EXISTS chronon_job_revision_job ON chronon_job_revision (job_id, revision_number)",
     ]
 }

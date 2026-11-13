@@ -21,6 +21,7 @@ mod bootstrap;
 mod catalog;
 mod distributed;
 mod fixtures;
+mod keyset_contract;
 mod macros;
 mod matrix;
 mod runner;
@@ -47,6 +48,7 @@ pub use fixtures::{
     upsert_immediate_run_once_job, upsert_manual_job, wait_for_run_terminal, COUNTING_SCRIPT,
     FAIL_SCRIPT, MAX_SLEEP_MS, NOOP_SCRIPT, SLEEP_SCRIPT,
 };
+pub use keyset_contract::run_list_runs_after_contract;
 pub use matrix::{DeploymentKind, MatrixSpec, StorageAdapter, TelemetryAdapter, Topology};
 pub use runner::{ScenarioResult, ScenarioRunner};
 pub use runner_types::{RunMode, StepTiming};

@@ -92,9 +92,7 @@ pub fn ch7_aggregate(
             min: total_rate,
             max: total_rate,
         });
-        let wall_note = wall_rate
-            .map(|w| format!(", wall-clock {w:.1}/s"))
-            .unwrap_or_default();
+        let wall_note = wall_rate.map_or_else(String::new, |w| format!(", wall-clock {w:.1}/s"));
         template.pass_notes = Some(format!(
             "aggregate {total_rate:.1} claims/s (sum of client rates){wall_note} across bc={bc} clients (prefix {cell_prefix})"
         ));

@@ -399,7 +399,7 @@ pub mod prelude {
     pub use crate::script;
     pub use chronon_core::{
         ChrononError, ContextFactory, Job, JobRevision, JsonScriptContextFactory,
-        NoOpContextFactory, NoOpScriptContext, Result, Run, RunStatus, ScheduleKind,
+        NoOpContextFactory, NoOpScriptContext, Result, Run, RunKey, RunStatus, ScheduleKind,
         SchedulerStore, Script, ScriptContext, ScriptHandle, StoreRouter, DEFAULT_STORE_NAME,
     };
     pub use chronon_executor::{Executor, ExecutorEvent, ScriptDescriptor, ScriptRegistry};
